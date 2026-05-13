@@ -29,13 +29,9 @@ jobs:
     - name: Set up IDF tools
       run: bash ${GITHUB_WORKSPACE}/esp-idf/install.sh esp32c3
 
-    # --- 修改后的修复步骤：紧随 install.sh 之后 ---
-    # 在这个步骤，IDF 的 Python 环境应该已经创建好了，但可能不完整
+    # --- 再次修改修复步骤：强制重新安装 setuptools ---
     - name: Prepare IDF Python Environment
       run: |
-        # 获取 IDF_PYTHON_ENV_PATH，因为 export.sh 还没执行，我们直接推断路径
-        # 通常格式是 ~/.espressif/python_env/idf[version]_py[version]_env
-        # 这里我们查找 ~/.espressif/python_env/ 下最近创建的环境
         PYTHON_ENV_DIR=$(ls -td $HOME/.espressif/python_env/* | head -n 1)
         if [ -z "$PYTHON_ENV_DIR" ]; then
           echo "Error: Could not find IDF Python environment directory."
@@ -44,7 +40,6 @@ jobs:
         fi
         echo "Found IDF Python Environment Directory: $PYTHON_ENV_DIR"
         
-        # 获取该环境下的 Python 解释器
         IDF_PYTHON="$PYTHON_ENV_DIR/bin/python"
         if [ ! -f "$IDF_PYTHON" ]; then
           echo "Error: Python interpreter not found at $IDF_PYTHON"
@@ -53,10 +48,15 @@ jobs:
         fi
         echo "Using Python interpreter: $IDF_PYTHON"
 
-        # 升级 pip, setuptools, wheel in the specific IDF environment
-        $IDF_PYTHON -m pip install --upgrade pip setuptools wheel
+        # 升级 pip, wheel first
+        $IDF_PYTHON -m pip install --upgrade pip wheel
+
+        # **核心修复：强制重新安装 setuptools**
+        echo "Re-installing setuptools to fix pkg_resources..."
+        $IDF_PYTHON -m pip install --force-reinstall setuptools
 
         # 验证 pkg_resources
+        echo "Verifying pkg_resources can be imported..."
         $IDF_PYTHON -c "import pkg_resources; print(f'Pkg_resources OK. setuptools version: {pkg_resources.get_distribution(\"setuptools\").version}'); import sys; print(f'Python path: {sys.executable}')"
 
 
