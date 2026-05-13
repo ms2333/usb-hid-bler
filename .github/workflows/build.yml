@@ -9,12 +9,14 @@ jobs:
     steps:
     - name: Install dependencies
       run: sudo apt-get install -y git wget flex bison gperf python3 python3-venv python3-setuptools cmake ninja-build ccache libffi-dev libssl-dev dfu-util libusb-1.0-0
+
     - name: Cache IDF
       id: cache-idf
       uses: actions/cache@v4
       with:
         path: esp-idf
         key: 1
+
     - name: Checkout IDF
       if: steps.cache-idf.outputs.cache-hit != 'true'
       uses: actions/checkout@v4
@@ -23,21 +25,43 @@ jobs:
         ref: 97fb98a91b308d4f4db54d6dd1644117607e9692
         submodules: recursive
         path: esp-idf
+
     - name: Set up IDF tools
       run: bash ${GITHUB_WORKSPACE}/esp-idf/install.sh esp32c3
+
+    # --- 新增步骤：修复并验证 Python 环境 ---
+    - name: Fix Python Environment
+      run: |
+        # 导入 IDF 环境以获取 IDF_PYTHON_ENV_PATH
+        source ${GITHUB_WORKSPACE}/esp-idf/export.sh
+        echo "IDF_PYTHON_ENV_PATH is: $IDF_PYTHON_ENV_PATH"
         
+        # 获取 IDF 使用的 Python 解释器路径
+        IDF_PYTHON="$IDF_PYTHON_ENV_PATH/bin/python"
+        echo "Using Python interpreter: $IDF_PYTHON"
+        
+        # 升级 pip, setuptools, wheel using the IDF's Python environment
+        $IDF_PYTHON -m pip install --upgrade pip setuptools wheel
+        
+        # 验证 pkg_resources 是否可以导入
+        $IDF_PYTHON -c "import pkg_resources; print(f'setuptools version: {pkg_resources.get_distribution(\"setuptools\").version}')"
+
+
     - name: Checkout repo
       uses: actions/checkout@v4
       with:
         submodules: 'recursive'
         path: hid-bler
+
     - name: Modify ble_hidd.c
-      run:  cp ${GITHUB_WORKSPACE}/hid-bler/.github/ble_hidd.c.replace ${GITHUB_WORKSPACE}/esp-idf/components/esp_hid/src/ble_hidd.c
+      run: cp ${GITHUB_WORKSPACE}/hid-bler/.github/ble_hidd.c.replace ${GITHUB_WORKSPACE}/esp-idf/components/esp_hid/src/ble_hidd.c
+
     - name: run build
       run: |
         cd ${GITHUB_WORKSPACE}/hid-bler
         . ${GITHUB_WORKSPACE}/esp-idf/export.sh
         idf.py build
+
     - name: upload firmware
       uses: actions/upload-artifact@v4
       with:
@@ -46,4 +70,3 @@ jobs:
           /home/runner/work/usb-hid-bler/usb-hid-bler/hid-bler/build/bootloader/bootloader.bin
           /home/runner/work/usb-hid-bler/usb-hid-bler/hid-bler/build/esp_hid_device.bin
           /home/runner/work/usb-hid-bler/usb-hid-bler/hid-bler/build/partition_table/partition-table.bin
-
