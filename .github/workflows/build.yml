@@ -57,15 +57,10 @@ jobs:
         $IDF_PYTHON -c "import pkg_resources; print(f'Pkg_resources OK. setuptools version: {pkg_resources.get_distribution(\"setuptools\").version}'); import sys; print(f'Python path: {sys.executable}')"
 
 
-    # --- 安装 IDF 核心依赖 ---
-    - name: Install IDF Core Dependencies
+    # --- 再次运行 IDF install.sh 来修复依赖 ---
+    - name: Re-run IDF install to fix dependencies
       run: |
-        PYTHON_ENV_DIR=$(ls -td $HOME/.espressif/python_env/* | head -n 1)
-        IDF_PYTHON="$PYTHON_ENV_DIR/bin/python"
-        
-        echo "Installing IDF core requirements using: $IDF_PYTHON"
-        # Install the core requirements directly using the fixed Python environment
-        $IDF_PYTHON -m pip install -r ${GITHUB_WORKSPACE}/esp-idf/tools/requirements/requirements.core.txt
+        bash ${GITHUB_WORKSPACE}/esp-idf/install.sh esp32c3
 
 
     - name: Checkout repo
