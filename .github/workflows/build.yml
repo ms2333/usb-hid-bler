@@ -29,7 +29,7 @@ jobs:
     - name: Set up IDF tools
       run: bash ${GITHUB_WORKSPACE}/esp-idf/install.sh esp32c3
 
-    # --- 再次修改修复步骤：强制重新安装 setuptools ---
+    # --- 再次修改修复步骤：强制重装整个 Python 环境栈，并指定一个旧版 setuptools ---
     - name: Prepare IDF Python Environment
       run: |
         PYTHON_ENV_DIR=$(ls -td $HOME/.espressif/python_env/* | head -n 1)
@@ -48,12 +48,9 @@ jobs:
         fi
         echo "Using Python interpreter: $IDF_PYTHON"
 
-        # 升级 pip, wheel first
-        $IDF_PYTHON -m pip install --upgrade pip wheel
-
-        # **核心修复：强制重新安装 setuptools**
-        echo "Re-installing setuptools to fix pkg_resources..."
-        $IDF_PYTHON -m pip install --force-reinstall setuptools
+        # 强制重新安装 pip, wheel, 和一个已知兼容的 setuptools 版本
+        echo "Force-reinstalling pip, wheel, and a stable setuptools version..."
+        $IDF_PYTHON -m pip install --force-reinstall pip wheel "setuptools<70.0.0"
 
         # 验证 pkg_resources
         echo "Verifying pkg_resources can be imported..."
