@@ -57,13 +57,15 @@ jobs:
         $IDF_PYTHON -c "import pkg_resources; print(f'Pkg_resources OK. setuptools version: {pkg_resources.get_distribution(\"setuptools\").version}'); import sys; print(f'Python path: {sys.executable}')"
 
 
-    # --- 新增步骤：重新运行 IDF 安装以确保所有依赖项 ---
-    - name: Re-run IDF install to ensure dependencies
+    # --- 安装 IDF 核心依赖 ---
+    - name: Install IDF Core Dependencies
       run: |
-        source ${GITHUB_WORKSPACE}/esp-idf/export.sh
-        # Re-run the install command to ensure all IDF Python requirements are met
-        # This will install idf-component-manager and others based on the constraint file
-        python -m pip install -r ${GITHUB_WORKSPACE}/esp-idf/tools/requirements/requirements.core.txt
+        PYTHON_ENV_DIR=$(ls -td $HOME/.espressif/python_env/* | head -n 1)
+        IDF_PYTHON="$PYTHON_ENV_DIR/bin/python"
+        
+        echo "Installing IDF core requirements using: $IDF_PYTHON"
+        # Install the core requirements directly using the fixed Python environment
+        $IDF_PYTHON -m pip install -r ${GITHUB_WORKSPACE}/esp-idf/tools/requirements/requirements.core.txt
 
 
     - name: Checkout repo
